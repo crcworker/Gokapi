@@ -628,6 +628,9 @@ func showDownload(w http.ResponseWriter, r *http.Request) {
 // Handling of /h/ and /hotlink/
 // Hotlinks an image or returns a static error image if image has expired
 func showHotlink(w http.ResponseWriter, r *http.Request) {
+	if !allowPublicDownload(w, r) {
+		return
+	}
 	hotlinkId := strings.Replace(r.URL.Path, "/hotlink/", "", 1)
 	hotlinkId = strings.Replace(hotlinkId, "/h/", "", 1)
 	addNoCacheHeader(w)
@@ -644,6 +647,16 @@ func showHotlink(w http.ResponseWriter, r *http.Request) {
 		_, _ = w.Write(imageExpiredPicture)
 		return
 	}
+}
+
+func allowPublicDownload(w http.ResponseWriter, r *http.Request) bool {
+	if ratelimiter.IsAllowedPublicDownload(r) {
+		return true
+	}
+
+	w.Header().Set("Retry-After", "2")
+	http.Error(w, "Too many download requests from this IP. Please retry later.", http.StatusTooManyRequests)
+	return false
 }
 
 // Checks if a file is associated with the GET parameter from the current URL
@@ -1024,6 +1037,9 @@ func responseError(w http.ResponseWriter, err error) {
 // Handling of /dh/?/?
 // Hotlinks a file and has the filename in the URL
 func downloadFileWithNameInUrl(w http.ResponseWriter, r *http.Request) {
+	if !allowPublicDownload(w, r) {
+		return
+	}
 	id := r.PathValue("id")
 	serveFile(id, false, w, r)
 }
@@ -1031,6 +1047,9 @@ func downloadFileWithNameInUrl(w http.ResponseWriter, r *http.Request) {
 // Handling of /downloadFile
 // Outputs the file to the user and reduces the download remaining count for the file
 func downloadFile(w http.ResponseWriter, r *http.Request) {
+	if !allowPublicDownload(w, r) {
+		return
+	}
 	id := queryUrl(w, r, "id", errorHandling.TypeFileNotFound)
 	serveFile(id, true, w, r)
 }

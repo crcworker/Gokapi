@@ -62,6 +62,8 @@ type Environment struct {
 	MaxSizeGuestUploadMb int `env:"MAX_SIZE_GUESTUPLOAD" envDefault:"10240" onlyPositive:"true"`
 	// Set the number of chunks that are uploaded in parallel for a single file
 	MaxParallelUploads int `env:"MAX_PARALLEL_UPLOADS" envDefault:"3" onlyPositive:"true" persistent:"true"`
+	// Sets the maximum number of public download requests per IP in a rolling minute
+	DownloadRateLimit int `env:"DOWNLOAD_RATE_LIMIT" envDefault:"30" onlyPositive:"true"`
 	// Sets the minimum free space on the disk in MB for accepting an upload
 	MinFreeSpaceMB int `env:"MIN_FREE_SPACE" envDefault:"400" onlyPositive:"true"`
 	// Sets the minimum password length

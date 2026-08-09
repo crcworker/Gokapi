@@ -7,6 +7,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/forceu/gokapi/internal/configuration"
 	"github.com/forceu/gokapi/internal/logging"
 	"golang.org/x/time/rate"
 )
@@ -16,6 +17,7 @@ var failedLoginLimiter = newLimiter()
 var failedIdLimiter = newLimiter()
 var failedDownloadPasswordLimiter = newLimiter()
 var failedApiKeyLimiter = newLimiter()
+var publicDownloadLimiter = newLimiter()
 
 // isUnitTest must be false and is only set to true for running test units
 // If true, rate limiting is disabled
@@ -74,6 +76,19 @@ func WaitOnFailedId(r *http.Request) {
 // Four initial requests are allowed without rate limiting, thereafter one every second
 func IsAllowedNewUuid(key string) bool {
 	return newUuidLimiter.Get(key, 1, 4).Allow()
+}
+
+// IsAllowedPublicDownload returns false when an IP exceeds the configured
+// number of public download requests per rolling minute.
+func IsAllowedPublicDownload(r *http.Request) bool {
+	limit := configuration.GetEnvironment().DownloadRateLimit
+	if limit <= 0 {
+		return true
+	}
+
+	ip := logging.GetIpAddress(r)
+	requestsPerSecond := rate.Limit(float64(limit) / 60)
+	return publicDownloadLimiter.Get(ip, requestsPerSecond, limit).Allow()
 }
 
 // Get returns the rate limiter for the given key
